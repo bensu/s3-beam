@@ -61,15 +61,43 @@
      "POST"
      form-data)))
 
+(defn download-file
+  [upload-info ch]
+  (let [sig-fields [:key :Content-Type :success_action_status :policy :AWSAccessKeyId :signature :acl]
+        complete-signature (:signature upload-info)
+        signature  (select-keys complete-signature sig-fields)
+        form-data  (formdata-from-map (merge signature {:file (:f upload-info)}))]
+    (println upload-info)
+    (xhr/send
+      (str (:action complete-signature) (:key complete-signature))
+     (fn [res]
+       (put! ch res)
+       (close! ch)))))
+
+(def k "bddf0bb8-db04-4ed9-b032-5bb9b0e37de1")
+
+(xhr/send
+  (str "/sign-download/" k)
+  (fn [res]
+    (.log js/console res)))
+
+(defn piper
+  [sign-fn report-chan opts]
+  (let [to-process (chan)
+        signed     (chan)]
+    (pipeline-async 3 signed (partial sign-file (:server-url opts)) to-process)
+    (pipeline-async 3 report-chan sign-fn signed)
+    to-process))
+
 (defn s3-pipe
   "Takes a channel where completed uploads will be reported and 
   returns a channel where you can put File objects that should get uploaded.
   May also take an optiosn map with:
     :server-url - the sign server url, defaults to \"/sign\""
   ([report-chan] (s3-pipe report-chan {:server-url "/sign"}))
+  ([report-chan opts] (piper upload-file report-chan opts)))
+
+(defn s3-download-pipe
+  ([report-chan] (s3-download-pipe report-chan {:server-url "/sign"}))
   ([report-chan opts]
-   (let [to-process (chan)
-         signed     (chan)]
-     (pipeline-async 3 signed (partial sign-file (:server-url opts)) to-process)
-     (pipeline-async 3 report-chan upload-file signed)
-     to-process)))
+   (piper download-file report-chan opts)))
