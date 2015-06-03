@@ -21,7 +21,6 @@
      (ring.util.codec/base64-encode
       (.getBytes (json/write-str { "expiration" (now-plus expiration-window)
                                    "conditions" [{"bucket" bucket}
-                                                 {"acl" "public-read"}
                                                  ["starts-with" "$Content-Type" mime-type]
                                                  ["starts-with" "$key" key]
                                                  {"success_action_status" "201"}]})
@@ -58,7 +57,6 @@
         :key    key 
         :Content-Type mime-type
         :policy p
-        :acl    "public-read"
         :success_action_status "201"
         :AWSAccessKeyId aws-access-key
         :signature (hmac-sha1 aws-secret-key p)}))))
@@ -66,7 +64,7 @@
 (defn s3-sign [bucket aws-zone access-key secret-key]
   (fn [request]
     {:status 200
-     :body   (pr-str (sign-upload (:params request) {:bucket bucket
-                                                     :aws-zone aws-zone
-                                                     :aws-access-key access-key
-                                                     :aws-secret-key secret-key}))}))
+     :body (pr-str (sign-upload (:params request) {:bucket bucket
+                                                   :aws-zone aws-zone
+                                                   :aws-access-key access-key
+                                                   :aws-secret-key secret-key}))}))
