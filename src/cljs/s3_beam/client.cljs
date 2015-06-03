@@ -61,25 +61,17 @@
      "POST"
      form-data)))
 
-(defn download-file
-  [upload-info ch]
-  (let [sig-fields [:key :Content-Type :success_action_status :policy :AWSAccessKeyId :signature :acl]
-        complete-signature (:signature upload-info)
-        signature  (select-keys complete-signature sig-fields)
-        form-data  (formdata-from-map (merge signature {:file (:f upload-info)}))]
-    (println upload-info)
-    (xhr/send
-      (str (:action complete-signature) (:key complete-signature))
-     (fn [res]
-       (put! ch res)
-       (close! ch)))))
+(defn sign-download [file ch]
+  (xhr/send (str "/sign-download/" (:key file) "/" (:file-name file))
+    (fn [res]
+      (let [signed-url (.getResponseText (.-target res))]
+        (put! ch signed-url)))))
 
-(def k "bddf0bb8-db04-4ed9-b032-5bb9b0e37de1")
-
-(xhr/send
-  (str "/sign-download/" k)
-  (fn [res]
-    (.log js/console res)))
+(defn download-file [file]
+  (let [download-ch (chan)]
+    (go (let [url (<! download-ch)]
+          (aset js/window "location" url)))
+    (sign-download file download-ch)))
 
 (defn piper
   [sign-fn report-chan opts]
@@ -96,8 +88,3 @@
     :server-url - the sign server url, defaults to \"/sign\""
   ([report-chan] (s3-pipe report-chan {:server-url "/sign"}))
   ([report-chan opts] (piper upload-file report-chan opts)))
-
-(defn s3-download-pipe
-  ([report-chan] (s3-download-pipe report-chan {:server-url "/sign"}))
-  ([report-chan opts]
-   (piper download-file report-chan opts)))
