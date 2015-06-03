@@ -4,7 +4,7 @@
 from the browser to S3 (CORS upload).
 
 ```clj
-[org.martinklepsch/s3-beam "0.2.1"]
+[org.martinklepsch/s3-beam "0.3.0"]
 ```
 
 ## Usage
@@ -89,12 +89,28 @@ was uploaded and a `:response` map that contains the `:location`,
 
 #### Not Released
 
+<<<<<<< HEAD
 - Added `:key-fn` option `s3-beam.handler/sign-upload` to generate
   custom S3 keys from `file-name` and `mime-type`.
 
 #### 0.3.0
 
 - Added custom `/sign` route. ([1cb9b2](https://github.com/martinklepsch/s3-beam/commit/1cb9b2703691e172e275a95490b3fc8209dfa409))
+=======
+- Added the `:key-fn` option `s3-beam.handler/sign-upload` to generate
+  custom S3 keys from `file-name` and `mime-type`.
+- **Breaking Change**: the `uploaded` channel now returns a map with
+  the `:file` that was uploaded and the S3 `:response` map with itself
+  contains all the information necessary to locate the file in S3:
+  `:location`, `:key`, `:bucket`, and `:etag` instead of just the
+  location as a string.
+
+#### 0.3.0
+
+-  Allow customization of server-side endpoint ([1cb9b27](https://github.com/martinklepsch/s3-beam/commit/1cb9b2703691e172e275a95490b3fc8209dfa409))
+
+        (s3/s3-pipe uploaded {:server-url "/my-cool-route"})
+>>>>>>> temp-deployment
 
 #### 0.2.0
 
