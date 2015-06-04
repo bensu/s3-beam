@@ -9,6 +9,8 @@
                  [org.clojure/data.json "0.2.5"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
 
+  :plugins [[s3-wagon-private "1.1.2"]]
+  
   :repositories [["private" {:url "s3p://komunike-repo/releases/"
                              :username :env/aws_access_key
                              :passphrase :env/aws_secret_key}]]
