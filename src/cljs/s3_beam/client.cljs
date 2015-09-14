@@ -49,9 +49,10 @@
       :bucket
       :etag"
   [upload-info ch]
-  (let [sig-fields [:key :Content-Type :success_action_status :policy :AWSAccessKeyId :signature :acl]
+  (let [sig-fields [:key :Content-Type :success_action_status
+                    :policy :AWSAccessKeyId :signature :acl]
         signature  (select-keys (:signature upload-info) sig-fields)
-        form-data  (formdata-from-map (merge signature {:file (:f upload-info)}))]
+        form-data  (formdata-from-map (assoc signature :file (:f upload-info)))]
     (xhr/send
      (:action (:signature upload-info))
      (fn [res]
@@ -64,14 +65,21 @@
 (defn sign-download [file ch]
   (xhr/send (str "/sign-download/" (:key file) "/" (:file-name file))
     (fn [res]
-      (let [signed-url (.getResponseText (.-target res))]
-        (put! ch signed-url)))))
+      (let [t (.-target res)]
+        (put! ch (if (.isSuccess t)
+                   (.getResponseText t)
+                   {:error (.getLastErrorCode t)}))))))
 
-(defn download-file [file]
-  (let [download-ch (chan)]
-    (go (let [url (<! download-ch)]
-          (aset js/window "location" url)))
-    (sign-download file download-ch)))
+(defn download-file
+  ([file] (download-file file (fn [e]
+                                (throw (js/Error. e)))))
+  ([file error-fn]
+   (let [download-ch (chan)]
+     (go (let [url (<! download-ch)]
+           (if (contains? url :error)
+             (error-fn url)
+             (aset js/window "location" url))))
+     (sign-download file download-ch))))
 
 (defn piper
   [sign-fn report-chan opts]
